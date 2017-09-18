@@ -52,7 +52,7 @@ function Level(plan) {
  * this.width=number【地图宽】
  * this.height=number【地图高】
  * this.grid=[['wall','lava',null,..],['wall',null,null],[...],...]【记录所有的不动的熔岩和墙】
- * this.actors=[Lava(local,ch),Player(local,ch),Coin(local,ch),....]【记录会动的熔岩，玩家，金币，位置和字符串图标为参数】
+ * this.actors=[Lava(local,ch),Player(local,ch),Coin(local,ch),....]【记录会动的熔岩，玩家，金币；位置和字符串图标为参数】
  * 如果遍历到的是Plays，Coin，Lava对应的字符串图标则被this.actors记录这个实例，其位置和字符串图标作为实例的两个参数，在this.grid里用null记录,如果是'X'||'!'则被this.grid记录wall||lava，this.grid是数组数组
  */
 
@@ -99,7 +99,7 @@ var actorChars = {
 /** Player(pos)=>{
   * this.pos
   * this.size
-  * this.speed
+  * this.speed=>{this.x,this.y}【存着当前的速度，用于模拟动量和重力】
   * this.type
     act()
     moveX()
@@ -119,6 +119,7 @@ Player.prototype.type = "player";
  * this.size
  * this.speed
  * this.type
+ * this.repeatPos =>{this.x,this.y}回到起始位置
  * act()
  * }
  */
@@ -161,11 +162,11 @@ function elt(name, className) {
 }
 /**
  * DOMDisplay(parent,level)=>{
- * this.wrap
- * this.level
+ * this.wrap =>存着一个父级DOM，子级为自定义的DOM元素和class
+ * this.level=>存着一个Level类的实例
  * this.actorLayer
  * drawFrame()
- * drawBackground()
+ * drawBackground()=>将世界以table表示，每一行为tr,行内的每一个元素为td
  * drawActors()
  * scrollPlayerIntoView()
  * clear()
@@ -208,7 +209,10 @@ DOMDisplay.prototype.drawActors = function() {
   });
   return wrap;
 };
-
+/**
+ * this.level.actors里的每一个动态的元素实例都生成一个div，以"actor"+actor.type为class
+ * 宽actor.size.x  高actor.size.y 位置left=>actor.pos.x top=>actor.pos.y   【都要*scale+"px"】
+ */
 DOMDisplay.prototype.drawFrame = function() {
   if (this.actorLayer)
     this.wrap.removeChild(this.actorLayer);
@@ -239,11 +243,15 @@ DOMDisplay.prototype.scrollPlayerIntoView = function() {
   else if (center.y > bottom - margin)
     this.wrap.scrollTop = center.y + margin - height;
 };
-
+/**
+ * 让player的黑条不会在可见窗口之外
+ */
 DOMDisplay.prototype.clear = function() {
   this.wrap.parentNode.removeChild(this.wrap);
 };
-
+/**
+ * 删除地图以及所以actors
+ */
 Level.prototype.obstacleAt = function(pos, size) {
   var xStart = Math.floor(pos.x);
   var xEnd = Math.ceil(pos.x + size.x);
@@ -261,7 +269,9 @@ Level.prototype.obstacleAt = function(pos, size) {
     }
   }
 };
-
+/**
+ * 构建四周的wall和底部的熔岩
+ */
 Level.prototype.actorAt = function(actor) {
   for (var i = 0; i < this.actors.length; i++) {
     var other = this.actors[i];
